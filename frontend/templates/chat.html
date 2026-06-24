@@ -107,7 +107,8 @@
 <script>
     const USER_ID = "user_" + Math.random().toString(36).substr(2, 9);
     const SESSION_ID = "session_" + Date.now();
-    let ws = new WebSocket("ws://" + window.location.hostname + ":8000/api/chat/ws/" + USER_ID + "/" + SESSION_ID);
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    let ws = new WebSocket(wsProtocol + "//" + window.location.host + "/api/chat/ws/" + USER_ID + "/" + SESSION_ID);
     let currentMessageEl = null;
     let musicPlaying = false;
 
