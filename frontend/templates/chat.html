@@ -70,13 +70,16 @@
             resize: none; max-height: 120px; outline: none;
         }
         .text-input::placeholder { color: rgba(255,255,255,0.3); }
-        .send-btn {
+        .send-btn, .voice-btn {
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             border: none; border-radius: 50%; width: 46px; height: 46px;
             cursor: pointer; color: white; font-size: 18px;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
+        .voice-btn { background: linear-gradient(135deg, #0f3460, #533483); }
+        .voice-btn.recording { background: linear-gradient(135deg, #ef4444, #dc2626); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
     </style>
 </head>
 <body>
@@ -96,6 +99,7 @@
     </div>
     <div class="input-area">
         <textarea class="text-input" id="messageInput" placeholder="Share what is on your mind..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+        <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">Mic</button>
         <button class="send-btn" onclick="sendMessage()">Send</button>
     </div>
 </div>
@@ -111,6 +115,55 @@
     let ws = new WebSocket(wsProtocol + "//" + window.location.host + "/api/chat/ws/" + USER_ID + "/" + SESSION_ID);
     let currentMessageEl = null;
     let musicPlaying = false;
+    let isRecording = false;
+    let recognition = null;
+
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById("messageInput").value = transcript;
+            sendMessage();
+        };
+
+        recognition.onerror = function(event) {
+            alert("Voice recognition error: " + event.error);
+            stopRecording();
+        };
+
+        recognition.onend = function() {
+            stopRecording();
+        };
+    }
+
+    function toggleVoice() {
+        if (!recognition) {
+            alert("Voice input is not supported in this browser. Try Chrome or Safari.");
+            return;
+        }
+        if (isRecording) {
+            recognition.stop();
+            stopRecording();
+        } else {
+            recognition.start();
+            isRecording = true;
+            const btn = document.getElementById("voiceBtn");
+            btn.classList.add("recording");
+            btn.textContent = "...";
+        }
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        const btn = document.getElementById("voiceBtn");
+        btn.classList.remove("recording");
+        btn.textContent = "Mic";
+    }
 
     function toggleMusic() {
         const audio = document.getElementById("bgMusic");
